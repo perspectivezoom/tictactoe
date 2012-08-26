@@ -2,19 +2,61 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <script src="http://underscorejs.org/underscore.js"></script>
+  <script src="./jquery-1.8.0.min.js"></script>
+  <script src="./underscore-1.3.3.min.js"></script>
+
+  <style type="text/css">
+    .square {
+      height: 100px;
+      width: 100px;
+      border: 1px solid;
+      float: left;
+    }
+    .clickable:hover {
+      background-image:url("x.png");
+      opacity: 0.5;
+    }
+    .x {
+      background-image:url("x.png");
+    }
+    .o {
+      background-image:url("o.png");
+    }
+    .button {
+      margin: 10px;
+      border: 1px solid;
+      padding: 10px;
+      float: left;
+    }
+    .button:hover {
+      background-color: #CCC;
+    }
+    .clearfix {
+      clear: both;
+    }
+
+  </style>
 </head>
 <body>
+  <h2>Tic Tac Toe</h2>
+  <div class="status">Choose who starts</div>
+  <div class="board"></div>
+  <div>
+    <div class="button" id="xstart">New Game: You are X - X starts</div>
+    <div class="button" id="ostart">New Game: You are X - O starts</div>
+    <div class='clearfix'></div>
+  </div>
 
   <script>
 
-    var createBoard = function(initialPosition, initialPlayer) {
-      var switchPlayer = function() {
-        if (currentPlayer == 'x')
-          currentPlayer = 'o';
-        else
-          currentPlayer = 'x';
-      };
+    var switchPlayer = function(player) {
+      if (player == 'x')
+        return 'o';
+      else
+        return 'x';
+    };
+
+    var createPosition = function(initialPosition) {
 
       var calculateAvailableSpaces = function() {
         var availableSpaces = [];
@@ -25,49 +67,77 @@
       };
 
       var position = initialPosition.slice(0);
-      var currentPlayer = initialPlayer;
       var availableSpaces = calculateAvailableSpaces();
 
       return {
-        move: function(space) {
-          position[space] = currentPlayer;
+        move: function(space, player) {
+          position[space] = player;
           availableSpaces = calculateAvailableSpaces();
-          switchPlayer();
         },
 
-        bestMove: function() {
-          var win = false;
-          var tie = false;
-          var lose = false;
-          var that = this;
+        bestMove: function(player) {
+          if( availableSpaces.length == 1 )
+            return availableSpaces[0];
+          else if ( position[4] == null )
+            return 4;
+          else if ( availableSpaces.length == 8 )
+            return 0;
+          else {
+            var win = false;
+            var tie = false;
+            var lose = false;
 
-          _(availableSpaces).each( function(attempt, currentPlayer) {
-            var bestOutcome = that.getBestOutcome(attempt);
-            if (bestOutcome == currentPlayer)
-              win = attempt;
-            else if(bestOutcome == 'tie')
-              tie = attempt;
+            for (var i = 0; i < availableSpaces.length; i++) {
+              var attempt = availableSpaces[i];
+              var bestOutcome = this.bestOutcome(attempt, player);
+              if (bestOutcome == player)
+                win = attempt;
+              else if(bestOutcome == 'tie')
+                tie = attempt;
+              else
+                lose = attempt;
+            };
+
+            if (win)
+              return win;
+            else if (tie)
+              return tie;
             else
-              lose = attempt;
-          });
-          if (win)
-            return win;
-          else if (tie)
-            return tie;
-          else
-            return lose;
+              return lose;
+          }
         },
 
-        getBestOutcome: function(testMove) {
-
-          var originalPlayer = currentPlayer;
-          var attempt = createBoard(position, currentPlayer);
-          attempt.move(testMove);
+        bestOutcome: function(testMove, player) {
+          var attempt = createPosition(position);
+          attempt.move(testMove,player);
+          var opposite = switchPlayer(player);
           var outcome = attempt.checkEnd();
           if (outcome)
             return outcome;
           else
-            return attempt.getBestOutcome(attempt.bestMove());
+            return attempt.bestOutcome(attempt.bestMove(opposite), opposite);
+        },
+
+        draw: function(htmlElement) {
+          var row1 = position.slice(0,3);
+          var row2 = position.slice(3,6);
+          var row3 = position.slice(6,9);
+          var index = 0;
+          var htmlString = '';
+          _([row1,row2,row3]).each( function(row) {
+            htmlString = htmlString + "<div class='row'>";
+                _(row).each( function(square) {
+                  if(square == null)
+                    htmlString = htmlString + "<div data-index=" + index + " class='square clickable'></div>";
+                  else
+                    htmlString = htmlString + "<div data-index=" + index + " class='square " + square + "'></div>";
+                  index++;
+                })
+              htmlString = htmlString + "<div class='clearfix'></div>";
+              htmlString = htmlString + "</div>";
+            });
+         
+          $(htmlElement).html(htmlString);
         },
 
         checkEnd: function() {
@@ -97,9 +167,39 @@
 
           return result;
         }
-
       };
     };
+
+    var playTurn = function(player, position) {
+      position.draw('.board');
+      if (!position.checkEnd()) {
+        $('.clickable').click( function() {
+          position.move($(this).attr('data-index'),player);
+          if(!position.checkEnd()) {
+            var opposite = switchPlayer(player);
+            position.move(position.bestMove(opposite),opposite);
+          }
+          playTurn(player, position);
+          }
+        );
+      } else {
+        $('.status').text('Game End. Winner: ' + position.checkEnd());
+        $('.clickable').off();
+        $('.clickable').removeClass('clickable');
+      }
+
+    };
+
+    $(document).ready(function() {
+      $('#xstart').click(function(){
+        var position = createPosition([null,null,null,null,null,null,null,null,null]);
+        playTurn('x',position);
+      });
+      $('#ostart').click(function(){
+        var position = createPosition([null,null,null,null,'o',null,null,null,null]);
+        playTurn('x',position);
+      });
+    });
 
   </script>
 </body>
