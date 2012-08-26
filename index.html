@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://underscorejs.org/underscore.js"></script>
+</head>
+<body>
+
+  <script>
+
+    var createBoard = function(initialPosition, initialPlayer) {
+      var switchPlayer = function() {
+        if (currentPlayer == 'x')
+          currentPlayer = 'o';
+        else
+          currentPlayer = 'x';
+      };
+
+      var calculateAvailableSpaces = function() {
+        var availableSpaces = [];
+        for(var i = 0; i < position.length; i++)
+          if (position[i] == null)
+            availableSpaces.push(i);
+        return availableSpaces
+      };
+
+      var position = initialPosition.slice(0);
+      var currentPlayer = initialPlayer;
+      var availableSpaces = calculateAvailableSpaces();
+
+      return {
+        move: function(space) {
+          position[space] = currentPlayer;
+          availableSpaces = calculateAvailableSpaces();
+          switchPlayer();
+        },
+
+        bestMove: function() {
+          var win = false;
+          var tie = false;
+          var lose = false;
+          var that = this;
+
+          _(availableSpaces).each( function(attempt, currentPlayer) {
+            var bestOutcome = that.getBestOutcome(attempt);
+            if (bestOutcome == currentPlayer)
+              win = attempt;
+            else if(bestOutcome == 'tie')
+              tie = attempt;
+            else
+              lose = attempt;
+          });
+          if (win)
+            return win;
+          else if (tie)
+            return tie;
+          else
+            return lose;
+        },
+
+        getBestOutcome: function(testMove) {
+
+          var originalPlayer = currentPlayer;
+          var attempt = createBoard(position, currentPlayer);
+          attempt.move(testMove);
+          var outcome = attempt.checkEnd();
+          if (outcome)
+            return outcome;
+          else
+            return attempt.getBestOutcome(attempt.bestMove());
+        },
+
+        checkEnd: function() {
+          // returns tie, x, y, or false (game not ended)
+          var rows = [[0,1,2],
+                      [3,4,5],
+                      [6,7,8],
+                      [0,3,6],
+                      [1,4,7],
+                      [2,5,8],
+                      [0,4,8],
+                      [2,4,6]
+                      ];
+
+          var result = false;
+
+          if ( availableSpaces.length == 0)
+            result = 'tie';
+
+          _(rows).each(function (row) {
+            var values_ar = _(row).map(function(index) { return position[index] });
+            if ( _(values_ar).without('x').length == 0 )
+              result = 'x';
+            else if ( _(values_ar).without('o').length == 0 )
+              result = 'o';
+          });
+
+          return result;
+        }
+
+      };
+    };
+
+  </script>
+</body>
+</html>
+
