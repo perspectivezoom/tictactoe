@@ -171,6 +171,7 @@
     };
 
     var playTurn = function(player, position) {
+      $('.status').text('Game has started. Good luck.');
       position.draw('.board');
       if (!position.checkEnd()) {
         $('.clickable').click( function() {
